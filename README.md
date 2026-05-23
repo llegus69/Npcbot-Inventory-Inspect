@@ -63,6 +63,12 @@ Panel de stats - Estadisticas enviadas por el bot (GS y cualquier otra que el se
 Nota: El modelo 3D solo aparece cuando el bot esta en tu grupo (party1-party4). Si no esta en el grupo el centro muestra "Not in party".
 
 
+<img width="3840" height="2160" alt="Wow" src="https://github.com/user-attachments/assets/c50470cd-2a87-4db4-8e34-9f5360d49461" />
+
+
+
+
+
 Estructura del proyecto
 NPCBotInventory/
 ├── NPCBotInventory.toc   -- Descriptor del addon
