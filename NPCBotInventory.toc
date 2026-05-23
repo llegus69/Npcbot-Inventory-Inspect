@@ -1,0 +1,10 @@
+## Interface: 30300
+## Title: NPCBotInventory
+## Notes: Muestra el equipo y stats de tus NPCBots
+## Author: Lleguito
+## Version: 3.0
+## SavedVariables: BotInventoryDB, NBIButtonPos, NBIStatsDB
+
+Core.lua
+UI.lua
+BotInspect.lua
