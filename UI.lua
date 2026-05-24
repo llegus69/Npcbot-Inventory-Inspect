@@ -1,6 +1,7 @@
 -- ============================================================
 -- NPCBotInventory - UI.lua
--- Compatible con WotLK 3.3.5 (sin SetColorTexture)
+-- Panel lateral de bots y boton flotante
+-- Autor: Lleguito | Version: 3.0 | WotLK 3.3.5
 -- ============================================================
 
 local NBI = NPCBotInventory
@@ -15,11 +16,7 @@ local C = {
     border = {0.3,  0.25, 0.15, 1},
 }
 
-local PANEL_W  = 180
-local GEAR_W   = 360
-local GEAR_H   = 520
-local SLOT_SZ  = 36
-local SLOT_PAD = 6
+local PANEL_W = 180
 
 -- ============================================================
 -- HELPERS
@@ -48,7 +45,7 @@ local function Divider(parent, y)
     d:SetHeight(1)
     d:SetPoint("TOPLEFT",  parent, "TOPLEFT",  8, y)
     d:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, y)
-    d:SetTexture(C.gold[1], C.gold[2], C.gold[3], 0.4)  -- SetTexture con RGBA en 3.3.5
+    d:SetTexture(C.gold[1], C.gold[2], C.gold[3], 0.4)
 end
 
 local function Header(parent, text)
@@ -73,123 +70,6 @@ local function SolidTexture(parent, r, g, b, a, layer)
 end
 
 -- ============================================================
--- VENTANA DE EQUIPO
--- ============================================================
-local gearFrame = CreateFrame("Frame", "NBI_GearFrame", UIParent)
-gearFrame:SetSize(GEAR_W, GEAR_H)
-gearFrame:SetPoint("CENTER")
-gearFrame:SetFrameStrata("MEDIUM")
-SetStyle(gearFrame)
-MakeDraggable(gearFrame)
-gearFrame:Hide()
-
-local gearTitle = Header(gearFrame, "Bot Gear")
-
-local gearClose = CreateFrame("Button", nil, gearFrame, "UIPanelCloseButton")
-gearClose:SetPoint("TOPRIGHT", gearFrame, "TOPRIGHT", 1, 1)
-gearClose:SetScript("OnClick", function() gearFrame:Hide() end)
-
-local gearScroll = CreateFrame("ScrollFrame", "NBI_GearScroll", gearFrame, "UIPanelScrollFrameTemplate")
-gearScroll:SetPoint("TOPLEFT",     gearFrame, "TOPLEFT",     8, -42)
-gearScroll:SetPoint("BOTTOMRIGHT", gearFrame, "BOTTOMRIGHT", -26, 8)
-
-local gearContent = CreateFrame("Frame", nil, gearScroll)
-gearContent:SetSize(GEAR_W - 40, 10)
-gearScroll:SetScrollChild(gearContent)
-
-gearFrame.slots = {}
-
-local function ShowBotGear(botName)
-    local inventory = NBI.botInventories[botName]
-    if not inventory then return end
-
-    gearTitle:SetText(botName .. "'s Gear")
-
-    for _, s in ipairs(gearFrame.slots) do
-        s.frame:Hide()
-    end
-
-    local cols  = 2
-    local cellW = math.floor((GEAR_W - 50) / cols)
-    local cellH = SLOT_SZ + 18
-
-    for i, link in ipairs(inventory) do
-        local col = (i - 1) % cols
-        local row = math.floor((i - 1) / cols)
-        local x   = 6 + col * cellW
-        local y   = -8 - row * (cellH + SLOT_PAD)
-
-        if not gearFrame.slots[i] then
-            local cont = CreateFrame("Button", nil, gearContent)
-            cont:SetSize(cellW - 4, cellH)
-            cont:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestLogTitleHighlight", "ADD")
-
-            local iconBg = CreateFrame("Frame", nil, cont)
-            iconBg:SetSize(SLOT_SZ, SLOT_SZ)
-            iconBg:SetPoint("TOPLEFT", cont, "TOPLEFT", 2, -2)
-            iconBg:SetBackdrop({
-                bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
-                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                tile = true, tileSize = 8, edgeSize = 8,
-                insets = { left = 2, right = 2, top = 2, bottom = 2 },
-            })
-            iconBg:SetBackdropColor(0.1, 0.1, 0.1, 1)
-
-            local icon = iconBg:CreateTexture(nil, "ARTWORK")
-            icon:SetAllPoints(iconBg)
-            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-            local nameLabel = cont:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            nameLabel:SetPoint("LEFT",  iconBg, "RIGHT", 6, 2)
-            nameLabel:SetPoint("RIGHT", cont,   "RIGHT", -2, 2)
-            nameLabel:SetJustifyH("LEFT")
-            nameLabel:SetTextColor(C.white[1], C.white[2], C.white[3])
-
-            local qBar = cont:CreateTexture(nil, "BORDER")
-            qBar:SetHeight(2)
-            qBar:SetPoint("BOTTOMLEFT",  iconBg, "BOTTOMLEFT",  0, -3)
-            qBar:SetPoint("BOTTOMRIGHT", iconBg, "BOTTOMRIGHT", 0, -3)
-            qBar:SetTexture(0.4, 0.4, 0.4, 0.5)
-
-            gearFrame.slots[i] = { frame = cont, icon = icon, name = nameLabel, qBar = qBar }
-        end
-
-        local s = gearFrame.slots[i]
-        s.frame:ClearAllPoints()
-        s.frame:SetPoint("TOPLEFT", gearContent, "TOPLEFT", x, y)
-        s.frame:Show()
-
-        local _, itemName, quality, _, _, _, _, _, _, texture = GetItemInfo(link)
-        if not texture then
-            itemName = string.match(link, "%[(.-)%]") or "Unknown"
-            texture  = "Interface\\Icons\\INV_Misc_QuestionMark"
-        end
-
-        s.icon:SetTexture(texture)
-        s.name:SetText(itemName or "")
-
-        if quality then
-            local qr, qg, qb = GetItemQualityColor(quality)
-            s.qBar:SetTexture(qr, qg, qb, 1)
-        else
-            s.qBar:SetTexture(0.4, 0.4, 0.4, 0.5)
-        end
-
-        s.frame:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetHyperlink(link)
-            GameTooltip:Show()
-        end)
-        s.frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    end
-
-    local rows = math.ceil(#inventory / cols)
-    gearContent:SetHeight(rows * (cellH + SLOT_PAD) + 20)
-    gearFrame:Show()
-    gearFrame:Raise()
-end
-
--- ============================================================
 -- PANEL DE LISTA DE BOTS
 -- ============================================================
 local listPanel = CreateFrame("Frame", "NBI_ListPanel", UIParent)
@@ -206,7 +86,6 @@ local listClose = CreateFrame("Button", nil, listPanel, "UIPanelCloseButton")
 listClose:SetPoint("TOPRIGHT", listPanel, "TOPRIGHT", 1, 1)
 listClose:SetScript("OnClick", function()
     listPanel:Hide()
-    gearFrame:Hide()
 end)
 
 local listScroll = CreateFrame("ScrollFrame", "NBI_ListScroll", listPanel, "UIPanelScrollFrameTemplate")
@@ -252,7 +131,7 @@ local function RefreshBotList()
 
         local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         lbl:SetPoint("LEFT",  btn, "LEFT",  18, 0)
-        lbl:SetPoint("RIGHT", btn, "RIGHT", -40, 0)
+        lbl:SetPoint("RIGHT", btn, "RIGHT", -50, 0)
         lbl:SetJustifyH("LEFT")
         lbl:SetTextColor(C.white[1], C.white[2], C.white[3])
         lbl:SetText(botName)
@@ -263,12 +142,22 @@ local function RefreshBotList()
         cnt:SetTextColor(C.grey[1], C.grey[2], C.grey[3])
         cnt:SetText("(" .. count .. ")")
 
-        -- Boton de inspect (abre paperdoll del bot)
-        local inspBtn = CreateFrame("Button", nil, btn, "UIPanelButtonTemplate")
-        inspBtn:SetSize(22, 18)
+        -- Boton de inspect con icono de pergamino
+        local inspBtn = CreateFrame("Button", nil, btn)
+        inspBtn:SetSize(22, 22)
         inspBtn:SetPoint("RIGHT", btn, "RIGHT", -2, 0)
-        inspBtn:SetText("i")
-        inspBtn:SetScript("OnClick", function(self)
+
+        local inspIcon = inspBtn:CreateTexture(nil, "ARTWORK")
+        inspIcon:SetAllPoints()
+        inspIcon:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
+        inspIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+        local inspHL = inspBtn:CreateTexture(nil, "HIGHLIGHT")
+        inspHL:SetAllPoints()
+        inspHL:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+        inspHL:SetBlendMode("ADD")
+
+        inspBtn:SetScript("OnClick", function()
             if NPCBotInventory.OpenInspect then
                 NPCBotInventory.OpenInspect(botName)
             end
@@ -280,11 +169,6 @@ local function RefreshBotList()
         end)
         inspBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-        btn:SetScript("OnClick", function()
-            gearFrame:ClearAllPoints()
-            gearFrame:SetPoint("TOPLEFT", listPanel, "TOPRIGHT", 4, 0)
-            ShowBotGear(botName)
-        end)
         btn:SetScript("OnEnter", function()
             lbl:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
         end)
@@ -300,7 +184,9 @@ local function RefreshBotList()
     listPanel:SetHeight(math.min(math.max(math.abs(yOff) + 90, 120), 500))
 end
 
--- Boton borrar todo
+-- ============================================================
+-- BOTON "BORRAR TODO"
+-- ============================================================
 StaticPopupDialogs["NBI_CONFIRM_CLEAR"] = {
     text           = "Borrar todos los inventarios de bot?",
     button1        = "Si, borrar",
@@ -321,6 +207,89 @@ clearBtn:SetScript("OnClick", function()
 end)
 
 -- ============================================================
+-- BOTON DE MINIMAPA
+-- ============================================================
+local minimapBtn = CreateFrame("Button", "NBI_MinimapButton", Minimap)
+minimapBtn:SetSize(28, 28)
+minimapBtn:SetFrameStrata("MEDIUM")
+minimapBtn:SetFrameLevel(8)
+
+-- Posicion en angulo alrededor del minimapa (en grados)
+-- Se guarda en SavedVariables para recordarla entre sesiones
+local minimapAngle = 220  -- posicion inicial
+
+local function UpdateMinimapPos()
+    local rad = math.rad(minimapAngle)
+    local x = math.cos(rad) * 80
+    local y = math.sin(rad) * 80
+    minimapBtn:SetPoint("CENTER", Minimap, "CENTER", x, y)
+end
+
+-- Fondo circular del boton
+local minimapBg = minimapBtn:CreateTexture(nil, "BACKGROUND")
+minimapBg:SetSize(28, 28)
+minimapBg:SetAllPoints()
+minimapBg:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+
+-- Icono del boton (pergamino)
+local minimapIcon = minimapBtn:CreateTexture(nil, "ARTWORK")
+minimapIcon:SetSize(18, 18)
+minimapIcon:SetPoint("CENTER", minimapBtn, "CENTER", 0, 0)
+minimapIcon:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
+minimapIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+-- Highlight al pasar el raton
+local minimapHL = minimapBtn:CreateTexture(nil, "HIGHLIGHT")
+minimapHL:SetSize(28, 28)
+minimapHL:SetAllPoints()
+minimapHL:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+
+-- Click izquierdo: abrir/cerrar panel
+minimapBtn:SetScript("OnClick", function(self, button)
+    if listPanel:IsShown() then
+        listPanel:Hide()
+    else
+        listPanel:ClearAllPoints()
+        listPanel:SetPoint("TOP", toggleBtn, "BOTTOM", 0, -4)
+        RefreshBotList()
+        listPanel:Show()
+    end
+end)
+
+-- Tooltip del boton del minimapa
+minimapBtn:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:AddLine("NPCBot Inventory")
+    GameTooltip:AddLine("Click para abrir/cerrar", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine("Arrastra para mover", 0.5, 0.5, 0.5)
+    GameTooltip:Show()
+end)
+minimapBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+-- Arrastrar el boton alrededor del minimapa
+minimapBtn:SetMovable(true)
+minimapBtn:RegisterForDrag("LeftButton")
+minimapBtn:SetScript("OnDragStart", function(self)
+    self:SetScript("OnUpdate", function(self)
+        local mx, my = Minimap:GetCenter()
+        local px, py = GetCursorPosition()
+        local scale  = UIParent:GetEffectiveScale()
+        px = px / scale
+        py = py / scale
+        minimapAngle = math.deg(math.atan2(py - my, px - mx))
+        UpdateMinimapPos()
+        -- Guardar angulo
+        NBIButtonPos = NBIButtonPos or {}
+        NBIButtonPos.minimapAngle = minimapAngle
+    end)
+end)
+minimapBtn:SetScript("OnDragStop", function(self)
+    self:SetScript("OnUpdate", nil)
+end)
+
+UpdateMinimapPos()
+
+-- ============================================================
 -- BOTON FLOTANTE
 -- ============================================================
 local toggleBtn = CreateFrame("Button", "NBI_ToggleButton", UIParent, "UIPanelButtonTemplate")
@@ -330,7 +299,6 @@ toggleBtn:SetFrameStrata("HIGH")
 MakeDraggable(toggleBtn)
 toggleBtn:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
-    -- Guardar posicion para la proxima sesion
     local point, _, relPoint, x, y = self:GetPoint()
     NBIButtonPos = { point = point, relPoint = relPoint, x = x, y = y }
     if listPanel:IsShown() then
@@ -341,7 +309,6 @@ end)
 toggleBtn:SetScript("OnClick", function()
     if listPanel:IsShown() then
         listPanel:Hide()
-        gearFrame:Hide()
     else
         listPanel:ClearAllPoints()
         listPanel:SetPoint("TOP", toggleBtn, "BOTTOM", 0, -4)
@@ -354,12 +321,14 @@ end)
 -- CALLBACKS desde Core.lua
 -- ============================================================
 function NBI.OnDataLoaded()
-    -- Restaurar posicion del boton o usar posicion segura por defecto
     toggleBtn:ClearAllPoints()
     if NBIButtonPos then
-        toggleBtn:SetPoint(NBIButtonPos.point, UIParent, NBIButtonPos.relPoint, NBIButtonPos.x, NBIButtonPos.y)
+        toggleBtn:SetPoint(NBIButtonPos.point or "TOPRIGHT", UIParent, NBIButtonPos.relPoint or "TOPRIGHT", NBIButtonPos.x or -220, NBIButtonPos.y or -100)
+        if NBIButtonPos.minimapAngle then
+            minimapAngle = NBIButtonPos.minimapAngle
+            UpdateMinimapPos()
+        end
     else
-        -- Esquina superior derecha, siempre visible
         toggleBtn:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -220, -100)
     end
 
@@ -373,11 +342,9 @@ end
 
 function NBI.OnBotDataUpdated(botName)
     if listPanel:IsShown() then RefreshBotList() end
-    if gearFrame:IsShown()  then ShowBotGear(botName) end
 end
 
 function NBI.OnDataCleared()
-    gearFrame:Hide()
     RefreshBotList()
 end
 
@@ -391,7 +358,6 @@ SlashCmdList["NBOTINV"] = function(msg)
     if msg == "" then
         if listPanel:IsShown() then
             listPanel:Hide()
-            gearFrame:Hide()
         else
             listPanel:ClearAllPoints()
             listPanel:SetPoint("TOP", toggleBtn, "BOTTOM", 0, -4)
@@ -399,8 +365,8 @@ SlashCmdList["NBOTINV"] = function(msg)
             listPanel:Show()
         end
     else
-        if NBI.botInventories[msg] then
-            ShowBotGear(msg)
+        if NBI.botInventories[msg] and NPCBotInventory.OpenInspect then
+            NPCBotInventory.OpenInspect(msg)
         else
             print("|cffFFD700[NPCBotInventory]|r Bot '" .. msg .. "' no encontrado.")
         end
