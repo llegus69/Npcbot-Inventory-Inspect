@@ -1,4 +1,5 @@
 Descripcion
+
 NPCBotInventory captura automaticamente los mensajes que los NPCBots envian por susurro cuando reportan su inventario, y los presenta en una interfaz visual completa. El addon ofrece dos vistas: un panel lateral con la lista de todos los bots detectados, y un paperdoll detallado por bot con sus slots de equipo, modelo 3D, estadisticas calculadas y Gear Score.
 
 Caracteristicas
