@@ -313,41 +313,68 @@ for i = 1, 24 do
 end
 
 -- ============================================================
--- PARSEAR STATS
--- Acepta: "Strength: 450", "GS: 4045", "GS 4045", "Critical 24.5%"
+-- STATS CALCULADOS: suma GetItemStats de todos los items
 -- ============================================================
-local function ParseStats(statText)
-    local stats = {}
-    for line in (statText .. "\n"):gmatch("([^\n]*)\n") do
-        line = line:match("^%s*(.-)%s*$")  -- trim
-        if line ~= "" then
-            -- Intentar con separador ":" o espacio
-            local key, val = line:match("^(.-)%s*:%s*(.+)$")
-            if not key then
-                key, val = line:match("^([%a][%a%s%d]-)%s+([%d][%d%.%%%s]-)$")
-            end
-            if key and val then
-                key = key:match("^%s*(.-)%s*$")
-                val = val:match("^%s*(.-)%s*$")
-                if key ~= "" and val ~= "" then
-                    table.insert(stats, { key = key, val = val })
-                end
-            end
+
+-- Orden de visualizacion y nombre legible de cada stat
+local STAT_DISPLAY = {
+    { key = "ITEM_MOD_STRENGTH_SHORT",             label = "Strength"         },
+    { key = "ITEM_MOD_AGILITY_SHORT",              label = "Agility"          },
+    { key = "ITEM_MOD_STAMINA_SHORT",              label = "Stamina"          },
+    { key = "ITEM_MOD_INTELLECT_SHORT",            label = "Intellect"        },
+    { key = "ITEM_MOD_SPIRIT_SHORT",               label = "Spirit"           },
+    { key = "ITEM_MOD_ATTACK_POWER_SHORT",         label = "Attack Power"     },
+    { key = "ITEM_MOD_SPELL_POWER_SHORT",          label = "Spell Power"      },
+    { key = "ITEM_MOD_CRIT_RATING_SHORT",          label = "Crit Rating"      },
+    { key = "ITEM_MOD_HIT_RATING_SHORT",           label = "Hit Rating"       },
+    { key = "ITEM_MOD_HASTE_RATING_SHORT",         label = "Haste Rating"     },
+    { key = "ITEM_MOD_EXPERTISE_RATING_SHORT",     label = "Expertise"        },
+    { key = "ITEM_MOD_ARMOR_PENETRATION_RATING_SHORT", label = "Armor Pen"   },
+    { key = "ITEM_MOD_DODGE_RATING_SHORT",         label = "Dodge Rating"     },
+    { key = "ITEM_MOD_PARRY_RATING_SHORT",         label = "Parry Rating"     },
+    { key = "ITEM_MOD_BLOCK_RATING_SHORT",         label = "Block Rating"     },
+    { key = "ITEM_MOD_RESILIENCE_RATING_SHORT",    label = "Resilience"       },
+    { key = "ITEM_MOD_MANA_REGENERATION_SHORT",    label = "MP5"              },
+    { key = "ITEM_MOD_HEALTH_REGEN",               label = "HP5"              },
+}
+
+-- Color por tipo de stat
+local STAT_COLOR = {
+    Strength        = {1,    0.82, 0   },
+    Agility         = {1,    0.82, 0   },
+    Stamina         = {1,    0.82, 0   },
+    Intellect       = {1,    0.82, 0   },
+    Spirit          = {1,    0.82, 0   },
+    ["Attack Power"]    = {0.9,  0.5,  0.1},
+    ["Spell Power"]     = {0.5,  0.5,  1  },
+    ["Crit Rating"]     = {0.2,  0.9,  0.4},
+    ["Hit Rating"]      = {0.2,  0.9,  0.4},
+    ["Haste Rating"]    = {0.2,  0.9,  0.4},
+    Expertise           = {0.2,  0.9,  0.4},
+    ["Armor Pen"]       = {0.8,  0.8,  0.8},
+    ["Dodge Rating"]    = {0.4,  0.7,  1  },
+    ["Parry Rating"]    = {0.4,  0.7,  1  },
+    ["Block Rating"]    = {0.4,  0.7,  1  },
+    Resilience          = {0.8,  0.3,  0.3},
+    MP5                 = {0.3,  0.6,  1  },
+    HP5                 = {0.3,  1,    0.3},
+}
+
+local function CalcItemStats(inventory)
+    local totals = {}
+    local statBuf = {}
+
+    for _, link in ipairs(inventory) do
+        -- Construir link completo para GetItemStats
+        local fullLink = "|Hitem:" .. link:match("item:(.-)$") .. "|h[x]|h"
+        -- GetItemStats necesita el link en formato |H...|h
+        wipe(statBuf)
+        GetItemStats(fullLink, statBuf)
+        for statKey, val in pairs(statBuf) do
+            totals[statKey] = (totals[statKey] or 0) + val
         end
     end
-    return stats
-end
-
-local function StatColor(key, val)
-    if val:find("%%") then
-        local n = tonumber(val:match("[%d%.]+")) or 0
-        if n > 0 then return 0.2, 0.9, 0.4 end
-        return 0.6, 0.6, 0.6
-    end
-    local primary = { Strength=1, Agility=1, Stamina=1, Intellect=1, Spirit=1 }
-    if primary[key] then return 1, 0.82, 0 end
-    if key == "GS" or key == "Gear Score" then return 0.64, 0.21, 0.93 end
-    return 0.9, 0.9, 0.9
+    return totals
 end
 
 -- ============================================================
@@ -355,9 +382,8 @@ end
 -- ============================================================
 function NBI.OpenInspect(botName)
     local inventory = NBI.botInventories[botName]
-    local statsText = NBI.botStats and NBI.botStats[botName]
 
-    if not inventory and not statsText then
+    if not inventory then
         print("|cffFFD700[NPCBotInventory]|r No data for: " .. botName)
         return
     end
@@ -429,24 +455,39 @@ function NBI.OpenInspect(botName)
         end
     end
 
-    -- Rellenar stats
+    -- Calcular y mostrar stats sumados de todos los items
     for _, row in ipairs(inspectFrame.statLabels) do
         row:Hide()
     end
 
+    -- GS desde botStats
+    local statsText = NBI.botStats and NBI.botStats[botName]
     if statsText then
-        local stats = ParseStats(statsText)
-        for i, stat in ipairs(stats) do
-            local row = inspectFrame.statLabels[i]
-            if row then
-                row.key:SetText(stat.key)
-                row.val:SetText(stat.val)
-                local r, g, b = StatColor(stat.key, stat.val)
-                row.val:SetTextColor(r, g, b)
-                row:Show()
-                -- Mostrar GS en el centro de la ventana
-                if stat.key == "GS" or stat.key == "Gear Score" then
-                    botGSLabel:SetText("GS: " .. stat.val)
+        local gs = statsText:match("GS%s*:%s*(%d+)")
+        if gs then
+            botGSLabel:SetText("GS: " .. gs)
+        end
+    end
+
+    -- Stats calculados desde los items
+    if inventory and #inventory > 0 then
+        local totals = CalcItemStats(inventory)
+        local rowIndex = 1
+        for _, statInfo in ipairs(STAT_DISPLAY) do
+            local val = totals[statInfo.key]
+            if val and val > 0 then
+                local row = inspectFrame.statLabels[rowIndex]
+                if row then
+                    row.key:SetText(statInfo.label)
+                    row.val:SetText("+" .. val)
+                    local color = STAT_COLOR[statInfo.label]
+                    if color then
+                        row.val:SetTextColor(color[1], color[2], color[3])
+                    else
+                        row.val:SetTextColor(0.9, 0.9, 0.9)
+                    end
+                    row:Show()
+                    rowIndex = rowIndex + 1
                 end
             end
         end
