@@ -62,8 +62,8 @@ local SLOT_LAYOUT = {
 
 local SLOT_SZ  = 37
 local WIN_W    = 500
-local WIN_H    = 580
-local STATS_X  = 120   -- inicio del panel de stats desde el centro
+local WIN_H    = 600   -- sin el panel de enchants ya no necesita ser tan alto
+local STATS_X  = 120
 
 local QUALITY_COLOR = {
     [0] = {0.62, 0.62, 0.62},
@@ -132,6 +132,12 @@ sep:SetTexture(0.5, 0.42, 0.1, 0.6)
 local inspectClose = CreateFrame("Button", nil, inspectFrame, "UIPanelCloseButton")
 inspectClose:SetPoint("TOPRIGHT", inspectFrame, "TOPRIGHT", 2, 2)
 inspectClose:SetScript("OnClick", function() inspectFrame:Hide() end)
+
+-- Creditos en la parte inferior
+local creditsLabel = inspectFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+creditsLabel:SetPoint("BOTTOM", inspectFrame, "BOTTOM", 0, 8)
+creditsLabel:SetTextColor(0.4, 0.4, 0.4, 1)
+creditsLabel:SetText("Creado por Lleguito")
 
 -- Fondo central decorativo
 local centerBg = CreateFrame("Frame", nil, inspectFrame)
@@ -257,7 +263,7 @@ for _, slotInfo in ipairs(SLOT_LAYOUT) do
 end
 
 -- ============================================================
--- PANEL DE ESTADISTICAS
+-- PANEL DE ESTADISTICAS (mitad superior derecha)
 -- ============================================================
 local STATS_W = 148
 local statsPanel = CreateFrame("Frame", nil, inspectFrame)
@@ -275,7 +281,7 @@ statsPanel:SetBackdropBorderColor(0.3, 0.25, 0.1, 0.8)
 local statsPanelTitle = statsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 statsPanelTitle:SetPoint("TOP", statsPanel, "TOP", 0, -8)
 statsPanelTitle:SetTextColor(1, 0.82, 0, 1)
-statsPanelTitle:SetText("Estadisticas")
+statsPanelTitle:SetText("Statistics")
 
 local statsDivider = statsPanel:CreateTexture(nil, "ARTWORK")
 statsDivider:SetHeight(1)
@@ -313,10 +319,7 @@ for i = 1, 24 do
 end
 
 -- ============================================================
--- STATS CALCULADOS: suma GetItemStats de todos los items
--- ============================================================
-
--- Orden de visualizacion y nombre legible de cada stat
+-- STATS CALCULADOS
 local STAT_DISPLAY = {
     { key = "ITEM_MOD_STRENGTH_SHORT",             label = "Strength"         },
     { key = "ITEM_MOD_AGILITY_SHORT",              label = "Agility"          },
