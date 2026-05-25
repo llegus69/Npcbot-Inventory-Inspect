@@ -16,7 +16,7 @@
 ## 🛠️ Requisitos
 
 * **Cliente:** World of Warcraft 3.3.5a (Interface `30300`).
-* **Servidor:** Emulador basado en **AzerothCore** con el módulo [mod-npcbots]([https://github.com/azerothcore/mod-npcbots](https://github.com/trickerer/AzerothCore-wotlk-with-NPCBots)) instalado.
+* **Servidor:** Emulador basado en **AzerothCore** con el módulo (https://github.com/trickerer/AzerothCore-wotlk-with-NPCBots) instalado.
 * **Script de Servidor (Opcional):** Módulo Lua `mod-ale` en el servidor para el script de recolección.
 * **Mecanismo:** Los NPCBots deben estar configurados para enviar su equipo e ítems vía `CHAT_MSG_MONSTER_WHISPER`.
 
